@@ -8,6 +8,7 @@ var routes = require('./routes');
 var user = require('./routes/user');
 var http = require('http');
 var path = require('path');
+var mongo = require('mongodb').MongoClient;
 
 var app = express();
 
@@ -51,4 +52,21 @@ io.on('connection', function (socket) {
     socket.on('chat', function (msg) { 
         socket.broadcast.emit('chat', msg);
     });
+});
+
+mongo.connect("mongodb://localhost/my_db", function (err, db) {
+    var collection = db.collection('chat message');
+    collection.insert({ content : msg }, function (error, o) {
+        if (error) {
+            console.log('Error occured while requesting process');
+        }
+        else
+            console.log("chat message inserted into db: " + msg);
+    });
+});
+
+mongo.connect("mongodb://localhost/my_db", function (err, db) {
+    var collection = db.collection('chat messages');
+    var stream = collection.find().sort({ _id : -1 }).limit(10).stream();
+    stream.on('data', function (chat) { socket.emit('chat', chat.content); });
 });
